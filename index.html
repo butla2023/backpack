@@ -593,6 +593,14 @@
             <div class="step"><span class="step-num">2</span><div><strong>Spot the ask</strong><span>Separate action, event, and FYI.</span></div></div>
             <div class="step"><span class="step-num">3</span><div><strong>Merge repeats</strong><span>One task, even if three emails mention it.</span></div></div>
 
+            <div class="key-wrap" id="gmailWrap" hidden>
+              <div class="key-heading">
+                <span class="field-label">Gmail connection</span>
+              </div>
+              <div id="gmailArea"></div>
+              <div class="privacy">Read-only access to find school mail. Backpack never sends, deletes, or changes anything in your inbox.</div>
+            </div>
+
             <div class="key-wrap">
               <div class="key-heading">
                 <label class="field-label" for="apiKey">Gemini API key <span style="font-weight:500;color:var(--muted)">(optional)</span></label>
@@ -767,6 +775,62 @@
     $('#fileList').addEventListener('click', e => { const btn=e.target.closest('[data-remove]'); if(!btn)return; selectedFiles.splice(Number(btn.dataset.remove),1); renderFiles(); });
     function renderFiles(){ $('#fileList').innerHTML=selectedFiles.map((f,i)=>`<div class="file-pill"><span>${escapeHtml(f.name)}</span><button data-remove="${i}" aria-label="Remove ${escapeHtml(f.name)}">×</button></div>`).join(''); }
     $('#analyzeBtn').addEventListener('click', analyze);
+
+    // ---- Gmail connection (Vercel full-stack only; hidden on static hosting) ----
+    async function checkGmailSession() {
+      try {
+        const r = await fetch('/api/scan', { method: 'GET', headers: { 'Accept': 'application/json' } });
+        if (r.status === 401) { showGmailSignIn(); return; }
+        if (!r.ok) return; // static hosting has no /api — leave the section hidden
+        const data = await r.json();
+        if (data && data.connected) showGmailConnected(data.email);
+      } catch (e) { /* static hosting: leave hidden */ }
+    }
+    function showGmailSignIn() {
+      $('#gmailWrap').hidden = false;
+      $('#gmailArea').innerHTML = `<a class="btn primary" href="/api/auth/login" style="width:100%;text-decoration:none">Sign in with Google</a>`;
+    }
+    function showGmailConnected(email) {
+      $('#gmailWrap').hidden = false;
+      $('#gmailArea').innerHTML = `
+        <div class="file-pill" style="margin-bottom:9px"><span>✓ Gmail connected as ${escapeHtml(email)}</span></div>
+        <button class="btn primary" id="scanGmailBtn" style="width:100%">Scan my Gmail</button>
+        <div style="margin-top:8px;text-align:right"><a class="key-link" href="/api/auth/logout">Sign out</a></div>`;
+      $('#scanGmailBtn').addEventListener('click', scanGmail);
+    }
+    async function scanGmail() {
+      const btn = $('#scanGmailBtn');
+      btn.disabled = true;
+      btn.textContent = 'Reading your school mail…';
+      showStatus('Filtering, summarizing, and merging repeated details…');
+      try {
+        const r = await fetch('/api/scan', { method: 'POST' });
+        const data = await r.json().catch(() => ({}));
+        if (r.status === 401) { showGmailSignIn(); showStatus('Please sign in with Google first.', 'error'); return; }
+        if (!r.ok) throw new Error(data.error || 'The Gmail scan could not be completed.');
+        if (!Array.isArray(data.digest) || !Array.isArray(data.todos) || !Array.isArray(data.events)) throw new Error('The response did not include all three lists.');
+        state = { digest: data.digest.slice(0,30), todos: data.todos.slice(0,30).map((t,i)=>({...t,id:t.id||`task-${i}`})), events: data.events.slice(0,30) };
+        completed.clear();
+        render();
+        showStatus(`Sorted ${state.digest.length} update${state.digest.length===1?'':'s'} into ${state.todos.length} task${state.todos.length===1?'':'s'} and ${state.events.length} activit${state.events.length===1?'y':'ies'} from your Gmail.`);
+        setTimeout(()=>go('digest'), 650);
+      } catch (err) {
+        showStatus(`Could not finish the Gmail scan: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Scan my Gmail';
+      }
+    }
+    checkGmailSession().then(() => {
+      const params = new URLSearchParams(location.search);
+      const auth = params.get('auth');
+      if (auth === 'success' || auth === 'error') {
+        history.replaceState(null, '', location.pathname);
+        go('analyze');
+        showStatus(auth === 'success' ? 'Gmail connected. Hit "Scan my Gmail" to read your inbox.' : 'Google sign-in did not complete. Please try again.', auth === 'success' ? 'info' : 'error');
+      }
+    });
+
     render();
   </script>
 </body>
