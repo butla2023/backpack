@@ -385,6 +385,10 @@
     .step strong { display: block; font-size: 13px; }
     .step span { color: var(--muted); font-size: 11px; }
     .key-wrap { margin-top: 17px; }
+    .key-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .key-heading .field-label { margin-bottom: 0; }
+    .key-link { color: var(--green); font-size: 11px; font-weight: 800; text-underline-offset: 3px; }
+    .key-link:hover { color: var(--green-deep); }
     .key-input { display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); }
     .key-input input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); padding: 11px 12px; }
     .key-input button { border: 0; background: transparent; color: var(--muted); padding: 0 10px; cursor: pointer; }
@@ -590,9 +594,12 @@
             <div class="step"><span class="step-num">3</span><div><strong>Merge repeats</strong><span>One task, even if three emails mention it.</span></div></div>
 
             <div class="key-wrap">
-              <label class="field-label" for="apiKey">Gemini API key <span style="font-weight:500;color:var(--muted)">(optional)</span></label>
+              <div class="key-heading">
+                <label class="field-label" for="apiKey">Gemini API key <span style="font-weight:500;color:var(--muted)">(optional)</span></label>
+                <a class="key-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Get a free API key ↗</a>
+              </div>
               <div class="key-input"><input id="apiKey" type="password" autocomplete="off" placeholder="Paste for live AI analysis" /><button id="toggleKey" type="button" aria-label="Show API key">Show</button></div>
-              <div class="privacy">Used only for this analysis request and never saved by this page. Without a key, the sample inbox uses the built-in demo result.</div>
+              <div class="privacy">Free to create in about 30 seconds. Your key is used only for the analysis request and is never saved. Without a key, the sample inbox uses the built-in demo result.</div>
             </div>
 
             <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif,text/plain" multiple />
